@@ -255,12 +255,6 @@ class DhcpEnv(object):
             na_rule_i = "-p IPv6 -i {{BR_PHY_DEV}} --ip6-dst {{ns_multicast_address}} --ip6-proto ipv6-icmp --ip6-icmp-type neighbour-advertisement -j DROP"
             _add_ebtables_rule6(na_rule_i)
 
-            ra_rule_o = "-p IPv6 -o {{BR_PHY_DEV}} --ip6-proto ipv6-icmp --ip6-icmp-type router-advertisement -j DROP"
-            _add_ebtables_rule6(ra_rule_o)
-
-            rs_rule_i = "-p IPv6 -i {{BR_PHY_DEV}} --ip6-proto ipv6-icmp --ip6-icmp-type router-solicitation -j DROP"
-            _add_ebtables_rule6(rs_rule_i)
-
             # prevent ns for dhcp server from upstream network
             dhcpv6_rule_o = "-p IPv6 -o {{BR_PHY_DEV}} --ip6-proto udp --ip6-sport 546:547 -j DROP"
             _add_ebtables_rule6(dhcpv6_rule_o)

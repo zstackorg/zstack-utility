@@ -381,7 +381,7 @@ class SharedBlockPlugin(kvmagent.KvmAgent):
         def create_vg(hostUuid, vgUuid, diskPaths, raise_excption = True):
             cmd = shell.ShellCmd("vgcreate -qq --shared --addtag '%s::%s::%s::%s' --metadatasize %s %s %s" %
                                  (INIT_TAG, hostUuid, time.time(), bash.bash_o("hostname").strip(),
-                                  DEFAULT_VG_METADATA_SIZE, vgUuid, " ".join(self.get_disk_paths(disks))))
+                                  DEFAULT_VG_METADATA_SIZE, vgUuid, " ".join(diskPaths)))
             cmd(is_exception=False)
             logger.debug("created vg %s, ret: %s, stdout: %s, stderr: %s" %
                          (vgUuid, cmd.return_code, cmd.stdout, cmd.stderr))
@@ -393,6 +393,7 @@ class SharedBlockPlugin(kvmagent.KvmAgent):
             else:
                 return True
 
+        diskPaths = self.get_disk_paths(disks)
         try:
             find_vg(vgUuid)
         except RetryException as e:

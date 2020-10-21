@@ -2013,9 +2013,9 @@ iz_install_zstackctl(){
 
 install_zstack_network()
 {
-    if [ "$BASEARCH" == 'aarch64']; then
+    if [ "$BASEARCH" == 'aarch64' ]; then
         zsn_agent='zsn-agent.aarch64.bin'
-    elif [ "$BASEARCH" == 'mips64el']; then
+    elif [ "$BASEARCH" == 'mips64el' ]; then
         zsn_agent='zsn-agent.mips64el.bin'
     else
         zsn_agent='zsn-agent.bin'
@@ -2499,7 +2499,7 @@ cs_setup_http(){
     mkdir $HTTP_FOLDER
     chmod 777 $HTTP_FOLDER
     chmod o+x $ZSTACK_INSTALL_ROOT
-    if [ $REDHAT_WITHOUT_CENTOS6 =~ $OS ]]; then
+    if [[ $REDHAT_WITHOUT_CENTOS6 =~ $OS ]]; then
         chkconfig httpd on >>$ZSTACK_INSTALL_LOG 2>&1
         cat > /etc/httpd/conf.d/zstack-http.conf <<EOF
 Alias /image "$HTTP_FOLDER/"

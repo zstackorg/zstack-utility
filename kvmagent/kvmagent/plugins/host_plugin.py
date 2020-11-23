@@ -644,10 +644,12 @@ class HostPlugin(kvmagent.KvmAgent):
             self.host_socket.close()
             self.host_socket = None
 
+        self.start_write_to_server()
+
         return jsonobject.dumps(rsp)
 
     @thread.AsyncThread
-    def start_write_to_server():
+    def start_write_to_server(self):
         pkt_counter = 0
         while True:
             try:

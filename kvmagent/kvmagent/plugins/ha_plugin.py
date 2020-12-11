@@ -47,6 +47,7 @@ class ReportSelfFencerCmd(object):
         self.hostUuid = None
         self.psUuids = None
         self.reason = None
+        self.fencerFailure = None
 
 
 class SanlockHostStatus(object):
@@ -492,11 +493,15 @@ class HaPlugin(kvmagent.KvmAgent):
             try:
                 failure = 0
 
+                failure_reported = False
                 while self.run_fencer(cmd.uuid, created_time):
                     time.sleep(cmd.interval)
 
                     if heartbeat_file_exists() or create_heartbeat_file():
                         failure = 0
+                        if failure_reported:
+                            self.report_self_fencer_triggered([cmd.uuid], None)
+                            failure_reported = False
                         continue
 
                     failure += 1
@@ -514,6 +519,7 @@ class HaPlugin(kvmagent.KvmAgent):
                             if vm_uuids:
                                 self.report_self_fencer_triggered([cmd.uuid], ','.join(vm_uuids))
                                 clean_network_config(vm_uuids)
+                                failure_reported = True
                         else:
                             delete_heartbeat_file()
 
@@ -734,6 +740,35 @@ class HaPlugin(kvmagent.KvmAgent):
         self.config = config
 
     @thread.AsyncThread
+    def report_self_fencer_recovered(self, ps_uuids):
+        url = self.config.get(kvmagent.SEND_COMMAND_URL)
+        if not url:
+            logger.warn('cannot find SEND_COMMAND_URL, unable to report self fencer triggered on [psList:%s]' % ps_uuids)
+            return
+
+        host_uuid = self.config.get(kvmagent.HOST_UUID)
+        if not host_uuid:
+            logger.warn(
+                'cannot find HOST_UUID, unable to report self fencer triggered on [psList:%s]' % ps_uuids)
+            return
+
+        def report_to_management_node():
+            cmd = ReportSelfFencerCmd()
+            cmd.psUuids = ps_uuids
+            cmd.hostUuid = host_uuid
+            cmd.vmUuidsString = vm_uuids_string
+            cmd.fencerFailure = False
+            cmd.reason = "primary storage[uuids:%s] on host[uuid:%s] heartbeat success, self fencer recovered" % (ps_uuids, host_uuid)
+
+            logger.debug(
+                'host[uuid:%s] primary storage[psList:%s], self fencer recover, report it to %s' % (
+                    host_uuid, ps_uuids, url))
+            http.json_dump_post(url, cmd, {'commandpath': '/kvm/reportselffencer'})
+
+        report_to_management_node()
+
+
+    @thread.AsyncThread
     def report_self_fencer_triggered(self, ps_uuids, vm_uuids_string=None):
         url = self.config.get(kvmagent.SEND_COMMAND_URL)
         if not url:
@@ -751,6 +786,7 @@ class HaPlugin(kvmagent.KvmAgent):
             cmd.psUuids = ps_uuids
             cmd.hostUuid = host_uuid
             cmd.vmUuidsString = vm_uuids_string
+            cmd.fencerFailure = True
             cmd.reason = "primary storage[uuids:%s] on host[uuid:%s] heartbeat fail, self fencer has been triggered" % (ps_uuids, host_uuid)
 
             logger.debug(

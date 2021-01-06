@@ -1203,7 +1203,7 @@ def find_route_interface_ip_by_destination_ip(ip_addr):
         return route.split('src')[1].strip().split()[0]
 
 def get_interface_master_device(interface):
-    lines = read_file_lines("/sys/class/net/%s/master/uevent" % self.interface)
+    lines = read_file_lines("/sys/class/net/%s/master/uevent" % interface)
     if not lines:
         return None
 
@@ -1213,8 +1213,8 @@ def get_interface_master_device(interface):
 
 
 def get_interface_ip_addresses(interface):
-    output = shell.call("ip -4 -o a show %s | awk '{print $4}'" % interface)
-    return output.splitlines() if output else None
+    output = shell.call("ip -4 -o a show %s | awk '{print $4}'" % interface.strip())
+    return output.splitlines() if output else []
 
 
 def create_bridge(bridge_name, interface, move_route=True):
@@ -2035,29 +2035,23 @@ def get_unmanaged_vms(include_not_zstack_but_in_virsh = False):
             unmanaged_vms.append(vm)
     return unmanaged_vms
 
-def linux_lsof(file, process="qemu-kvm", find_rpath=True):
+
+def linux_lsof(abs_path, process="qemu-kvm", find_rpath=True):
     """
 
-    :param file: target file to run lsof
+    :param abs_path: target file to run lsof
     :param process: process name to find, it can't find correctly in CentOS 7.4, so give process name is necessary
     :param find_rpath: use realpath to find deeper, it should be true in most cases
     :return: stdout of lsof
     """
+
     r = ""
-    o = shell.call("lsof -b -c %s | grep %s" % (process, file), False).strip().splitlines()
-    if len(o) != 0:
-        for line in o:
-            if line not in r:
-                r = r.strip() + "\n" + line
+    if find_rpath:
+        r_path = os.path.realpath(abs_path)
+        if r_path != abs_path:
+            abs_path += "|%s" % r_path
 
-    if not find_rpath:
-        return r.strip()
-
-    r_path = shell.call("realpath %s" % file).strip()
-    if r_path == file:
-        return r.strip()
-
-    o = shell.call("lsof -b -c %s | grep %s" % (process, r_path), False).strip().splitlines()
+    o = shell.call("lsof -b -c %s | grep -wE '%s'" % (process, abs_path), False).strip().splitlines()
     if len(o) != 0:
         for line in o:
             if line not in r:
